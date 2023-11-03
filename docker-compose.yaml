@@ -1,0 +1,38 @@
+version: "3"
+services:
+  lollm:
+    build: ./app
+    # command:
+      # - sleep
+      # - 1d
+    ports:
+      - 8000:8000
+    env_file: ./app/.env
+    volumes:
+      - ./run/lollm:/run/lollm
+    depends_on:
+      - ollama
+    restart: unless-stopped
+      #network_mode: "host"
+  ngrok:
+    image: ngrok/ngrok:alpine
+    command:
+      - "http"
+      - "8000"
+      - "--log"
+      - "stdout"
+    network_mode: "host"
+  ollama:
+    image: ollama/ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ./run/ollama:/home/ollama
+        #network_mode: "host"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
