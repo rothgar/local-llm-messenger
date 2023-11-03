@@ -24,6 +24,68 @@ Some examples include:
 /default - set a default model
 ```
 Message the Bot with any text.
+
 ![messaging the bot with the question "what is the air speed velocity of a swallow"](/img/lollm-demo-1.gif)
 
 ## Setup
+
+Clone the repo and run the app locally.
+The app comes with 3 parts:
+1. sendblue bridge (lollm)
+1. ngrok
+1. ollama
+
+Ollama will manage the models for you.
+Ngrok will give you a public webhook to use with sendblue.
+Lollm is the bridge that relays messages between the AI models and sendblue.
+
+```
+git clone git@github.com:rothgar/local-llm.git
+cd local-llm
+docker compose up
+```
+Watch the output for your ngrok endpoint.
+It should look like this:
+```
+local-llm-messenger-ngrok-1   | t=2023-11-03T23:15:11+0000 lvl=info msg="tunnel session started" obj=tunnels.session               
+local-llm-messenger-ngrok-1   | t=2023-11-03T23:15:11+0000 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://
+localhost:8000 url=https://6336-47-149-36-168.ngrok.io
+```
+The url host `https://6336-47-149-36-168.ngrok.io` is what you're going to put into the [sendblue api dashboard](https://app.sendblue.co/api-dashboard).
+You need to add `/msg` to the end of the receive webhook so the full url should look like:
+```
+https://6336-47-149-36-168.ngrok.io/msg
+```
+
+Save the configuration and copy the API Key and API secret from the dashboard.
+Put them in the `app/.env` file:
+```
+SENDBLUE_API_KEY=xxxxxx....
+SENDBLUE_API_SECRET=xxxxx....
+```
+You also need to put the OLLAMA_ENDPOINT into the .env file.
+This default will work with docker compose
+```
+OLLAMA_API_ENDPOINT=https://ollama:11434/api
+```
+If you want to use ChatGPT you also can put your OpenAI key.
+You can create one in your [user settings](https://platform.openai.com/account/api-keys).
+```
+OPENAI_API_KEY=xxxxx....
+```
+You now need to add your phone number as a sendblue contact.
+Navigate to the [contacts dashboard](https://app.sendblue.co/message-dashboard) and click Add Contact.
+
+You should test that you can receive the messages by sending a test message from the dashboard.
+
+After your contact is set up you should be able to send messages to the sendblue number and they will be forwarded to lollm.
+
+## Limitations
+You can use ChatGPT with your own API key but currently only gpt-3.5-turbo and dalle-2 are available from the API.
+When gpt-4 and dalle-3 are added to the API we can add them to the app.
+
+Ollama does not yet support any AI models that have image generation or image processing.
+When models are available we can add the ability to send and receive images.
+
+You can sign up for a sendblue indehacker account by emailing their support and requesting it for personal use.
+It is limited to 100 messages a month and always appends `-Sent using sendblue.co` to your messages.
