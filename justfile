@@ -1,2 +1,6 @@
 serve:
-  uvicorn main:app --reload --reload-include 'default.ai' --reload-exclude '.git' --log-config=log_conf.yaml
+  cd app && uvicorn main:app \
+    --env-file .env \
+    --reload \
+    --reload-include default.ai \
+    --log-config=log_conf.yaml
