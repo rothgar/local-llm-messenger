@@ -10,11 +10,22 @@ from sendblue import Sendblue
 SENDBLUE_API_KEY = os.environ.get("SENDBLUE_API_KEY")
 SENDBLUE_API_SECRET = os.environ.get("SENDBLUE_API_SECRET")
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-OLLAMA_API = "http://localhost:11434/api"
+OLLAMA_API = os.environ.get("OLLAMA_API_ENDPOINT", "http://ollama:11434/api")
 CALLBACK_URL = "https://s.gerbil-dragon.ts.net/callback"
+
 sendblue = Sendblue(SENDBLUE_API_KEY, SENDBLUE_API_SECRET)
 
 logger = logging.getLogger(__name__)
+
+def set_default_model(model: str):
+    try:
+        with open("default.ai", "w") as f:
+            f.write(model)
+            f.close()
+            return
+    except IOError:
+        logger.error("Could not open file")
+        exit(1)
 
 
 def get_default_model() -> str:
@@ -22,7 +33,11 @@ def get_default_model() -> str:
         with open("default.ai") as f:
             default = f.readline().strip("\n")
             f.close()
-            return default
+            if default != "":
+                return default
+            else:
+                set_default_model("llama2:latest")
+                return ""
     except IOError:
         logger.error("Could not open file")
         exit(1)
@@ -34,17 +49,6 @@ def validate_model(model: str) -> bool:
         return True
     else:
         return False
-
-
-def set_default_model(model: str):
-    try:
-        with open("default.ai", "w") as f:
-            f.write(model)
-            f.close()
-            return
-    except IOError:
-        logger.error("Could not open file")
-        exit(1)
 
 
 def get_ollama_model_list() -> List[str]:
@@ -74,6 +78,18 @@ def get_model_list() -> List[str]:
 
 
 DEFAULT_MODEL = get_default_model()
+
+if DEFAULT_MODEL == '':
+    # This is probably the first run so we need to install a model
+    print("No model found. Installing llama2:latest")
+    pull_data = '{"name": "llama2:latest","stream": false}'
+    try:
+        pull_resp = requests.post(OLLAMA_API + "/pull", data=pull_data)
+        pull_resp.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
+    set_default_model("llama2:latest")
+    DEFAULT_MODEL="llama2:latest"
 
 if validate_model(DEFAULT_MODEL):
     logger.info("Using model: " + DEFAULT_MODEL)
@@ -160,6 +176,7 @@ def msg_ollama(msg: Msg, model=DEFAULT_MODEL):
 
 def send_typing_indicator(msg: Msg):
     """This just sends a typing indicator to let them know we're working on a reply"""
+    # sendblue.send_typing_indicator(msg.from_number)
     sb_headers = {
         "sb-api-key-id": os.environ.get("SENDBLUE_API_KEY"),
         "sb-api-secret-key": os.environ.get("SENDBLUE_API_SECRET"),
@@ -198,6 +215,8 @@ def match_closest_model(model: str) -> str:
 
 
 app = FastAPI()
+
+print("OLLAMA API IS " + OLLAMA_API)
 
 
 @app.post("/msg")
@@ -319,9 +338,11 @@ def command(msg: Msg):
                 },
             )
         case "default":
-            # set default ai
+            # set default model
             args = msg.content.lower().split(" ")[1]
-            set_default_model(args)
+            matched_model = match_closest_model(args)
+            print("setting default model " + matched_model)
+            set_default_model(matched_model)
         case _:
             help_response = sendblue.send_message(
                 msg.from_number,

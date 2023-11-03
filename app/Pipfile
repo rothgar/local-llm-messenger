@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+sendblue = "*"
+openai = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+fastapi = "*"
+requests = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
+
+[pipenv]
+allow_prereleases = true
