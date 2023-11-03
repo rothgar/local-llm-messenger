@@ -1,0 +1,17 @@
+{
+  "accountEmail": "support@sendblue.co",
+  "content": "Ahoy Developer!",
+  "media_url": "some_cdn_link.png",
+  "is_outbound": false,
+  "status": "RECEIVED",
+  "error_code": null,
+  "error_message": null,
+  "message_handle": "xxxxx",
+  "date_sent": "2020-09-10T06:15:05.962Z",
+  "date_updated": "2020-09-10T06:15:05.962Z",
+  "from_number": "+19998887777",
+  "number": "+19998887777",
+  "to_number": "+15122164639",
+  "was_downgraded": false,
+  "plan": "blue"
+}
