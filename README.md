@@ -1,4 +1,4 @@
-# Local LLM (lollm)
+![](/img/banner.png)
 
 This app allows you to send iMessages to the genAI models running in your own computer.
 See it in action here.
