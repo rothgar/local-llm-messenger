@@ -27,6 +27,19 @@ Message the Bot with any text.
 
 ![messaging the bot with the question "what is the air speed velocity of a swallow"](/img/lollm-demo-1.gif)
 
+The default AI model is stored in `default.ai` text.
+If you want to change the default you can send the command `/default gpt-3.5`.
+
+If you want to message a different bot for a single message you can use `@` with the model name.
+```
+@llama how does electricity work
+```
+This will use the closest match for `llama` in your model list to ask the question.
+If you have multiple models that start with `llama` you need to be more specific about which model you want to use.
+
+Context is kept in `app/context.txt` and only 25 lines of context is stored.
+
+
 ## Setup
 
 Clone the repo and run the app locally.
@@ -89,6 +102,7 @@ When gpt-4 and dalle-3 are added to the API we can add them to the app.
 
 Ollama does not yet support any AI models that have image generation or image processing.
 When models are available we can add the ability to send and receive images.
+If you send images to the bot they are downloaded into `app/media/` but are currently not used for anything until image processing or generation is available.
 
 You can sign up for a sendblue indehacker account by emailing their support and requesting it for personal use.
 It is limited to 100 messages a month and always appends `-Sent using sendblue.co` to your messages.
