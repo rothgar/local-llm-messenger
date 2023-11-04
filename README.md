@@ -44,6 +44,9 @@ git clone git@github.com:rothgar/local-llm.git
 cd local-llm
 docker compose up
 ```
+The first time you run the application if you don't have an OpenAI key then the [`llama2:latest`](https://ollama.ai/library/llama2) model will be installed for ollama.
+This image is about 4GB in size so be prepared for it to take a while.
+
 Watch the output for your ngrok endpoint.
 It should look like this:
 ```
