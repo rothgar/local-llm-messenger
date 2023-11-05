@@ -11,11 +11,12 @@ SENDBLUE_API_KEY = os.environ.get("SENDBLUE_API_KEY")
 SENDBLUE_API_SECRET = os.environ.get("SENDBLUE_API_SECRET")
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 OLLAMA_API = os.environ.get("OLLAMA_API_ENDPOINT", "http://ollama:11434/api")
-CALLBACK_URL = "https://s.gerbil-dragon.ts.net/callback"
+CALLBACK_URL = os.environ.get("CALLBACK_URL")
 
 sendblue = Sendblue(SENDBLUE_API_KEY, SENDBLUE_API_SECRET)
 
 logger = logging.getLogger(__name__)
+
 
 def set_default_model(model: str):
     try:
@@ -53,6 +54,20 @@ def validate_model(model: str) -> bool:
 
 def get_ollama_model_list() -> List[str]:
     available_models = []
+    # for i in range(0, 20):
+    #     # crude loop to wait for ollama endpoint
+    #     # this doesn't work as expected
+    #     try:
+    #         tags = requests.get(OLLAMA_API + "/tags")
+    #         tags.raise_for_status()
+    #         break
+    #     except requests.exceptions.HTTPError as e:
+    #         print("FAILED TO GET OLLAMA TAGS. " + e.args[0])
+    #         time.sleep(2)
+    #     except ConnectionError as e:
+    #         print("FAILED TO GET OLLAMA TAGS. " + e.args[0])
+    #         time.sleep(2)
+
     tags = requests.get(OLLAMA_API + "/tags")
     all_models = json.loads(tags.text)
     for model in all_models["models"]:
@@ -79,17 +94,21 @@ def get_model_list() -> List[str]:
 
 DEFAULT_MODEL = get_default_model()
 
-if DEFAULT_MODEL == '':
+if DEFAULT_MODEL == "":
     # This is probably the first run so we need to install a model
-    print("No model found. Installing llama2:latest")
-    pull_data = '{"name": "llama2:latest","stream": false}'
-    try:
-        pull_resp = requests.post(OLLAMA_API + "/pull", data=pull_data)
-        pull_resp.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        raise SystemExit(err)
-    set_default_model("llama2:latest")
-    DEFAULT_MODEL="llama2:latest"
+    if "OPENAI_API_KEY" in os.environ:
+        print("No default model set. openai is enabled. using gpt-3.5-turbo")
+        DEFAULT_MODEL = "gpt-3.5-turbo"
+    else:
+        print("No model found and openai not enabled. Installing llama2:latest")
+        pull_data = '{"name": "llama2:latest","stream": false}'
+        try:
+            pull_resp = requests.post(OLLAMA_API + "/pull", data=pull_data)
+            pull_resp.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            raise SystemExit(err)
+        set_default_model("llama2:latest")
+        DEFAULT_MODEL = "llama2:latest"
 
 if validate_model(DEFAULT_MODEL):
     logger.info("Using model: " + DEFAULT_MODEL)
@@ -97,6 +116,50 @@ else:
     logger.error("Model " + DEFAULT_MODEL + " not available.")
     logger.info(get_model_list())
     exit(1)
+
+
+def set_msg_send_style(received_msg: str):
+    """Will return a style for the message to send based on matched words in received message"""
+    celebration_match = ["happy"]
+    shooting_star_match = ["star"]
+    fireworks_match = ["celebrate"]
+    lasers_match = ["cool"]
+    love_match = ["love"]
+    confetti_match = ["yay"]
+    balloons_match = ["party"]
+    echo_match = ["what did you say"]
+    invisible_match = ["quietly"]
+    gentle_match = []
+    loud_match = ["hear"]
+    slam_match = []
+
+    received_msg_lower = received_msg.lower()
+    if any(x in received_msg_lower for x in celebration_match):
+        return "celebration"
+    elif any(x in received_msg_lower for x in shooting_star_match):
+        return "shooting_star"
+    elif any(x in received_msg_lower for x in fireworks_match):
+        return "fireworks"
+    elif any(x in received_msg_lower for x in lasers_match):
+        return "lasers"
+    elif any(x in received_msg_lower for x in love_match):
+        return "love"
+    elif any(x in received_msg_lower for x in confetti_match):
+        return "confetti"
+    elif any(x in received_msg_lower for x in balloons_match):
+        return "balloons"
+    elif any(x in received_msg_lower for x in echo_match):
+        return "echo"
+    elif any(x in received_msg_lower for x in invisible_match):
+        return "invisible"
+    elif any(x in received_msg_lower for x in gentle_match):
+        return "gentle"
+    elif any(x in received_msg_lower for x in loud_match):
+        return "loud"
+    elif any(x in received_msg_lower for x in slam_match):
+        return "slam"
+    else:
+        return
 
 
 class Msg(BaseModel):
@@ -136,11 +199,13 @@ class Callback(BaseModel):
 
 def msg_openai(msg: Msg, model=DEFAULT_MODEL):
     """Sends a message to openai"""
+    message_with_context = create_messages_from_context("openai")
+
     gpt_resp = openai.ChatCompletion.create(
         model=model,
-        messages=[{"role": "user", "content": msg.content + "in under 100 words"}],
+        messages=message_with_context,
     )
-    append_context(gpt_resp.choices[0].message.content)
+    append_context("system", gpt_resp.choices[0].message.content)
     msg_response = sendblue.send_message(
         msg.from_number,
         {
@@ -165,12 +230,26 @@ def msg_ollama(msg: Msg, model=DEFAULT_MODEL):
         OLLAMA_API + "/generate", headers=ollama_headers, data=ollama_data
     )
     response_dict = json.loads(ollama_resp.text)
-    # pprint(response_dict)
-    append_context(response_dict["response"])
-    msg_response = sendblue.send_message(
-        msg.from_number,
-        {"content": response_dict["response"], "status_callback": CALLBACK_URL},
-    )
+    if ollama_resp.ok:
+        send_style = set_msg_send_style(msg.content)
+        append_context("system", response_dict["response"])
+        msg_response = sendblue.send_message(
+            msg.from_number,
+            {
+                "content": response_dict["response"],
+                "status_callback": CALLBACK_URL,
+                "send_style": send_style,
+            },
+        )
+    else:
+        msg_response = sendblue.send_message(
+            msg.from_number,
+            {
+                "content": "I'm sorry, I had a problem processing that question. Please try again.",
+                "status_callback": CALLBACK_URL,
+            },
+        )
+
     return
 
 
@@ -190,10 +269,12 @@ def send_typing_indicator(msg: Msg):
     )
 
 
-def append_context(content: str):
-    """Appends the current content to a file to send to the model with new requests"""
+def append_context(source: str, content: str):
+    """Appends the current content to a file to send to the model with new requests.
+    Uses the format
+    user,question"""
     f = open("context.txt", "a")
-    f.write(content + "\n")
+    f.write(source + "," + content + "\n")
     f.close()
     f = open("context.txt", "r")
     context = f.readlines()
@@ -203,6 +284,31 @@ def append_context(content: str):
     for line in trunk_context:
         f.write(line)
     f.close()
+
+
+def create_messages_from_context(provider_api: str):
+    """Reads the context file and creates properly formatted messages"""
+    messages = []
+    f = open("context.txt", "r")
+    lines = f.readlines()
+    if provider_api == "ollama":
+        # generate data for ollama
+        print("ollama context not supported")
+
+    elif provider_api == "openai":
+        # generate data for openai
+        for line in lines:
+            line_arr = line.split(",")
+            # each message in the array should look like
+            # {"role": "user|system", "content": "the message"}
+            messages.append(
+                '{"role":"'
+                + line_arr[0]
+                + '", "content": "'
+                + ",".join(line_arr[1:])
+                + '"}'
+            )
+    return messages
 
 
 def match_closest_model(model: str) -> str:
@@ -264,7 +370,7 @@ async def create_msg(msg: Msg):
         return
 
     # write the content to our context file
-    append_context(msg.content)
+    append_context("user", msg.content)
     send_typing_indicator(msg)
 
     # get the models to know which model we should use
@@ -286,6 +392,12 @@ async def create_callback(callback: Callback):
     # TODO: make this track messages
     logger.info(callback)
     return
+
+
+@app.get("/")
+def health():
+    """This just returns text for a health check"""
+    return "hello"
 
 
 def command(msg: Msg):
