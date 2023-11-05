@@ -12,6 +12,7 @@ SENDBLUE_API_SECRET = os.environ.get("SENDBLUE_API_SECRET")
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 OLLAMA_API = os.environ.get("OLLAMA_API_ENDPOINT", "http://ollama:11434/api")
 CALLBACK_URL = os.environ.get("CALLBACK_URL")
+MAX_WORDS = os.environ.get("MAX_WORDS")
 
 sendblue = Sendblue(SENDBLUE_API_KEY, SENDBLUE_API_SECRET)
 
@@ -121,9 +122,9 @@ else:
 def set_msg_send_style(received_msg: str):
     """Will return a style for the message to send based on matched words in received message"""
     celebration_match = ["happy"]
-    shooting_star_match = ["star"]
-    fireworks_match = ["celebrate"]
-    lasers_match = ["cool"]
+    shooting_star_match = ["star", "stars"]
+    fireworks_match = ["celebrate", "firework"]
+    lasers_match = ["cool", "lasers", "laser"]
     love_match = ["love"]
     confetti_match = ["yay"]
     balloons_match = ["party"]
@@ -224,7 +225,9 @@ def msg_ollama(msg: Msg, model=DEFAULT_MODEL):
         + model
         + '", "stream": false, "prompt":"'
         + msg.content
-        + ' in under 100 words"}'
+        + " in under "
+        + MAX_WORDS
+        + ' words"}'
     )
     ollama_resp = requests.post(
         OLLAMA_API + "/generate", headers=ollama_headers, data=ollama_data
@@ -273,12 +276,13 @@ def append_context(source: str, content: str):
     """Appends the current content to a file to send to the model with new requests.
     Uses the format
     user,question"""
+    MAX_CONTEXT = os.environ.get("MAX_CONTEXT", 20)
     f = open("context.txt", "a")
     f.write(source + "," + content + "\n")
     f.close()
     f = open("context.txt", "r")
     context = f.readlines()
-    trunk_context = context[-20:]
+    trunk_context = context[-abs(int(MAX_CONTEXT)) :]
     f.close()
     f = open("context.txt", "w")
     for line in trunk_context:
