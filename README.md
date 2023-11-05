@@ -27,6 +27,12 @@ Message the Bot with any text.
 
 ![messaging the bot with the question "what is the air speed velocity of a swallow"](/img/lollm-demo-1.gif)
 
+Messages have key words than may trigger special styles.
+In the future it will also support sending styles as part of the message.
+Reactions and marking messages as read currently does not work.
+
+![a message being sent with a laser effect](/img/lasers.gif)
+
 The default AI model is stored in `default.ai` text.
 If you want to change the default you can send the command `/default gpt-3.5`.
 
@@ -103,6 +109,8 @@ When gpt-4 and dalle-3 are added to the API we can add them to the app.
 Ollama does not yet support any AI models that have image generation or image processing.
 When models are available we can add the ability to send and receive images.
 If you send images to the bot they are downloaded into `app/media/` but are currently not used for anything until image processing or generation is available.
+
+Ollama does not yet support message context (only supported with openAI).
 
 You can sign up for a sendblue indehacker account by emailing their support and requesting it for personal use.
 It is limited to 100 messages a month and always appends `-Sent using sendblue.co` to your messages.
