@@ -1,9 +1,11 @@
 ![](/img/banner.png)
 
 This app allows you to send iMessages to the genAI models running in your own computer.
-See it in action here.
+See it in action with this video 👇.
 
-<< insert video >>
+[![Video overview](https://img.youtube.com/vi/rlD4FtIXV8E/0.jpg)](https://youtu.be/rlD4FtIXV8E)
+
+https://youtu.be/rlD4FtIXV8E
 
 This project uses Docker compose to run the required services locally.
 It uses [sendblue](https://sendblue.co/) to handle iMessages and [ollama](https://ollama.ai/) to install and manage AI models.
