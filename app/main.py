@@ -11,6 +11,7 @@ SENDBLUE_API_KEY = os.environ.get("SENDBLUE_API_KEY")
 SENDBLUE_API_SECRET = os.environ.get("SENDBLUE_API_SECRET")
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 OLLAMA_API = os.environ.get("OLLAMA_API_ENDPOINT", "http://ollama:11434/api")
+# could also use request.headers.get('referer') to do dynamically
 CALLBACK_URL = os.environ.get("CALLBACK_URL")
 MAX_WORDS = os.environ.get("MAX_WORDS")
 
@@ -116,7 +117,13 @@ if validate_model(DEFAULT_MODEL):
 else:
     logger.error("Model " + DEFAULT_MODEL + " not available.")
     logger.info(get_model_list())
-    exit(1)
+
+    pull_data = '{"name": "' + DEFAULT_MODEL + '","stream": false}'
+    try:
+        pull_resp = requests.post(OLLAMA_API + "/pull", data=pull_data)
+        pull_resp.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise SystemExit(err)
 
 
 def set_msg_send_style(received_msg: str):

@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 sendblue = "*"
-openai = "*"
+openai = "=1.0.0rc3"
 uvicorn = {extras = ["standard"], version = "*"}
 fastapi = "*"
 requests = "*"
